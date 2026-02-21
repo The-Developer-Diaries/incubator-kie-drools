@@ -47,7 +47,6 @@
         <dependency>
             <groupId>io.opentelemetry</groupId>
             <artifactId>opentelemetry-api</artifactId>
-            <version>1.59.0</version>
         </dependency>
         <dependency>
             <groupId>org.slf4j</groupId>
@@ -68,7 +67,6 @@
         <dependency>
             <groupId>io.opentelemetry</groupId>
             <artifactId>opentelemetry-sdk-testing</artifactId>
-            <version>1.59.0</version>
             <scope>test</scope>
         </dependency>
         <dependency>
