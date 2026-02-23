@@ -1,0 +1,146 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
+
+syntax = "proto3";
+
+package org.drools.grpc;
+
+option java_package = "org.drools.grpc.proto";
+option java_multiple_files = true;
+
+// High-performance gRPC service for evaluating Drools rules.
+// Supports both stateless (one-shot) and stateful (session-based) execution.
+service DroolsRuleService {
+  // Stateless execution: insert facts, fire all rules, and return results in a single call.
+  rpc Execute(ExecuteRequest) returns (ExecuteResponse);
+
+  // Create a new stateful KIE session.
+  rpc CreateSession(CreateSessionRequest) returns (CreateSessionResponse);
+
+  // Dispose a stateful session and release resources.
+  rpc DisposeSession(DisposeSessionRequest) returns (DisposeSessionResponse);
+
+  // Insert a fact into a stateful session.
+  rpc InsertFact(InsertFactRequest) returns (InsertFactResponse);
+
+  // Delete a fact from a stateful session by its handle ID.
+  rpc DeleteFact(DeleteFactRequest) returns (DeleteFactResponse);
+
+  // Fire all rules in a stateful session.
+  rpc FireAllRules(FireAllRulesRequest) returns (FireAllRulesResponse);
+
+  // Retrieve facts from a stateful session, optionally filtered by type.
+  rpc GetFacts(GetFactsRequest) returns (GetFactsResponse);
+}
+
+// A fact represented as a typed JSON payload.
+// The type field must be the fully qualified Java class name
+// of the fact object (e.g. "com.example.Order").
+message Fact {
+  string type = 1;
+  string json = 2;
+}
+
+// --- Stateless Execution ---
+
+message ExecuteRequest {
+  string kie_base_name = 1;   // KieBase name (empty = default)
+  repeated Fact facts = 2;
+  int32 max_rules = 3;        // 0 = fire all
+}
+
+message ExecuteResponse {
+  bool success = 1;
+  string error_message = 2;
+  int32 rules_fired = 3;
+  repeated Fact result_facts = 4;
+  repeated string rules_fired_names = 5;
+}
+
+// --- Session Lifecycle ---
+
+message CreateSessionRequest {
+  string kie_base_name = 1;   // KieBase name (empty = default)
+  string session_id = 2;      // Optional; auto-generated if empty
+}
+
+message CreateSessionResponse {
+  bool success = 1;
+  string error_message = 2;
+  string session_id = 3;
+}
+
+message DisposeSessionRequest {
+  string session_id = 1;
+}
+
+message DisposeSessionResponse {
+  bool success = 1;
+  string error_message = 2;
+}
+
+// --- Fact Operations ---
+
+message InsertFactRequest {
+  string session_id = 1;
+  Fact fact = 2;
+}
+
+message InsertFactResponse {
+  bool success = 1;
+  string error_message = 2;
+  string fact_handle_id = 3;
+}
+
+message DeleteFactRequest {
+  string session_id = 1;
+  string fact_handle_id = 2;
+}
+
+message DeleteFactResponse {
+  bool success = 1;
+  string error_message = 2;
+}
+
+// --- Rule Firing ---
+
+message FireAllRulesRequest {
+  string session_id = 1;
+  int32 max_rules = 2;        // 0 = fire all
+}
+
+message FireAllRulesResponse {
+  bool success = 1;
+  string error_message = 2;
+  int32 rules_fired = 3;
+  repeated string rules_fired_names = 4;
+}
+
+// --- Querying Facts ---
+
+message GetFactsRequest {
+  string session_id = 1;
+  string fact_type = 2;       // Optional: filter by fully qualified class name
+}
+
+message GetFactsResponse {
+  bool success = 1;
+  string error_message = 2;
+  repeated Fact facts = 3;
+}
