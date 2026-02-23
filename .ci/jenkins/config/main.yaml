@@ -31,11 +31,14 @@ ecosystem:
         - incubator-kie-benchmarks.*
 git:
   branches:
-    - name: main
-      main_branch: true
-    - name: 10.0.x
-      seed:
-        branch: seed-drools-10.0.x
+  - name: main
+    main_branch: true
+  - name: 10.0.x
+    seed:
+      branch: seed-drools-10.0.x
+  - name: 10.1.x
+    seed:
+      branch: seed-drools-10.1.x
 seed:
   config_file:
     git:
