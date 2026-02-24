@@ -38,6 +38,10 @@ public class FactConverter {
         this.classLoader = classLoader;
     }
 
+    public ObjectMapper getObjectMapper() {
+        return objectMapper;
+    }
+
     /**
      * Deserializes a {@link Fact} proto message to a Java object.
      *

@@ -39,6 +39,8 @@ import org.drools.grpc.proto.GetFactsRequest;
 import org.drools.grpc.proto.GetFactsResponse;
 import org.drools.grpc.proto.InsertFactRequest;
 import org.drools.grpc.proto.InsertFactResponse;
+import org.drools.grpc.proto.StreamEvent;
+import org.drools.grpc.proto.StreamResult;
 
 /**
  * Hand-written gRPC service definition for {@code DroolsRuleService}.
@@ -104,6 +106,14 @@ public final class DroolsRuleServiceGrpc {
                     .setResponseMarshaller(ProtoUtils.marshaller(GetFactsResponse.getDefaultInstance()))
                     .build();
 
+    public static final MethodDescriptor<StreamEvent, StreamResult> STREAMING_SESSION_METHOD =
+            MethodDescriptor.<StreamEvent, StreamResult>newBuilder()
+                    .setType(MethodDescriptor.MethodType.BIDI_STREAMING)
+                    .setFullMethodName(MethodDescriptor.generateFullMethodName(SERVICE_NAME, "StreamingSession"))
+                    .setRequestMarshaller(ProtoUtils.marshaller(StreamEvent.getDefaultInstance()))
+                    .setResponseMarshaller(ProtoUtils.marshaller(StreamResult.getDefaultInstance()))
+                    .build();
+
     private static volatile ServiceDescriptor serviceDescriptor;
 
     public static ServiceDescriptor getServiceDescriptor() {
@@ -120,6 +130,7 @@ public final class DroolsRuleServiceGrpc {
                             .addMethod(DELETE_FACT_METHOD)
                             .addMethod(FIRE_ALL_RULES_METHOD)
                             .addMethod(GET_FACTS_METHOD)
+                            .addMethod(STREAMING_SESSION_METHOD)
                             .build();
                 }
             }
@@ -161,6 +172,15 @@ public final class DroolsRuleServiceGrpc {
             io.grpc.stub.ServerCalls.asyncUnimplementedUnaryCall(GET_FACTS_METHOD, responseObserver);
         }
 
+        public StreamObserver<StreamEvent> streamingSession(StreamObserver<StreamResult> responseObserver) {
+            io.grpc.stub.ServerCalls.asyncUnimplementedStreamingCall(STREAMING_SESSION_METHOD, responseObserver);
+            return new StreamObserver<StreamEvent>() {
+                @Override public void onNext(StreamEvent value) { }
+                @Override public void onError(Throwable t) { }
+                @Override public void onCompleted() { }
+            };
+        }
+
         @Override
         public ServerServiceDefinition bindService() {
             return ServerServiceDefinition.builder(getServiceDescriptor())
@@ -171,6 +191,7 @@ public final class DroolsRuleServiceGrpc {
                     .addMethod(DELETE_FACT_METHOD, ServerCalls.asyncUnaryCall(this::deleteFact))
                     .addMethod(FIRE_ALL_RULES_METHOD, ServerCalls.asyncUnaryCall(this::fireAllRules))
                     .addMethod(GET_FACTS_METHOD, ServerCalls.asyncUnaryCall(this::getFacts))
+                    .addMethod(STREAMING_SESSION_METHOD, ServerCalls.asyncBidiStreamingCall(this::streamingSession))
                     .build();
         }
     }

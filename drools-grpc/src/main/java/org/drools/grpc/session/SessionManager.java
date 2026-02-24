@@ -18,14 +18,18 @@
  */
 package org.drools.grpc.session;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.CopyOnWriteArrayList;
 
 import org.kie.api.KieBase;
 import org.kie.api.runtime.KieSession;
 import org.kie.api.runtime.KieSessionsPool;
 import org.kie.api.runtime.rule.FactHandle;
+import org.kie.api.runtime.rule.LiveQuery;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -48,6 +52,8 @@ public class SessionManager {
     private final KieSessionsPool sessionsPool;
     private final Map<String, KieSession> statefulSessions = new ConcurrentHashMap<>();
     private final Map<String, Map<String, FactHandle>> sessionFactHandles = new ConcurrentHashMap<>();
+    private final Map<String, Thread> fireUntilHaltThreads = new ConcurrentHashMap<>();
+    private final Map<String, List<LiveQuery>> sessionLiveQueries = new ConcurrentHashMap<>();
 
     /**
      * Creates a SessionManager backed by a pool from the given KieBase.
@@ -130,12 +136,72 @@ public class SessionManager {
         }
     }
 
+    // --- Fire-until-halt management ---
+
+    public void startFireUntilHalt(String sessionId) {
+        KieSession session = getSession(sessionId);
+        if (fireUntilHaltThreads.containsKey(sessionId)) {
+            throw new IllegalStateException("Fire-until-halt already active for session: " + sessionId);
+        }
+        Thread thread = new Thread(session::fireUntilHalt, "fire-until-halt-" + sessionId);
+        thread.setDaemon(true);
+        fireUntilHaltThreads.put(sessionId, thread);
+        thread.start();
+        log.debug("Fire-until-halt started for session {}", sessionId);
+    }
+
+    public void halt(String sessionId) {
+        KieSession session = getSession(sessionId);
+        session.halt();
+        Thread thread = fireUntilHaltThreads.remove(sessionId);
+        if (thread != null) {
+            try {
+                thread.join(5000);
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+            }
+        }
+        log.debug("Halted session {}", sessionId);
+    }
+
+    public boolean isFireUntilHaltActive(String sessionId) {
+        return fireUntilHaltThreads.containsKey(sessionId);
+    }
+
+    // --- Live query tracking ---
+
+    public void trackLiveQuery(String sessionId, LiveQuery liveQuery) {
+        sessionLiveQueries.computeIfAbsent(sessionId, k -> new CopyOnWriteArrayList<>()).add(liveQuery);
+    }
+
+    public void closeAllLiveQueries(String sessionId) {
+        List<LiveQuery> queries = sessionLiveQueries.remove(sessionId);
+        if (queries != null) {
+            for (LiveQuery q : queries) {
+                try {
+                    q.close();
+                } catch (Exception e) {
+                    log.warn("Error closing live query for session {}", sessionId, e);
+                }
+            }
+        }
+    }
+
+    public long getFactCount(String sessionId) {
+        return getSession(sessionId).getFactCount();
+    }
+
     /**
      * Disposes the stateful session and returns it to the pool.
+     * Halts fire-until-halt and closes live queries if active.
      *
      * @return true if the session existed and was disposed
      */
     public boolean disposeSession(String sessionId) {
+        if (fireUntilHaltThreads.containsKey(sessionId)) {
+            halt(sessionId);
+        }
+        closeAllLiveQueries(sessionId);
         KieSession session = statefulSessions.remove(sessionId);
         sessionFactHandles.remove(sessionId);
         if (session != null) {
@@ -151,6 +217,14 @@ public class SessionManager {
      * Called during server shutdown.
      */
     public void shutdown() {
+        new ArrayList<>(fireUntilHaltThreads.keySet()).forEach(id -> {
+            try {
+                halt(id);
+            } catch (Exception e) {
+                log.warn("Error halting session {} during shutdown", id, e);
+            }
+        });
+        new ArrayList<>(sessionLiveQueries.keySet()).forEach(this::closeAllLiveQueries);
         statefulSessions.forEach((id, session) -> {
             try {
                 session.dispose();
