@@ -34,6 +34,10 @@
   <name>Drools :: Rule Swagger</name>
   <description>Swagger-like UI for browsing, inspecting, and test-firing Drools rules with sample facts</description>
 
+  <properties>
+    <java.module.name>org.drools.rule.swagger</java.module.name>
+  </properties>
+
   <dependencies>
     <dependency>
       <groupId>org.kie</groupId>
