@@ -1,3 +1,4 @@
+#
 # Licensed to the Apache Software Foundation (ASF) under one
 # or more contributor license agreements.  See the NOTICE file
 # distributed with this work for additional information
@@ -14,23 +15,20 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+#
 
-specVersion: alpha
-kind: YaRD
-name: 'BasePrice'
-inputs:
-  - name: Age
-    type: number
-elements:
-  - name: Ten
-    type: Decision
-    logic:
-      type: LiteralExpression
-      expression: |
-        10
-  - name: Ten
-    type: Decision
-    logic:
-      type: LiteralExpression
-      expression: |
-        5 + 5 
+this:
+  is:
+    a: test
+    b: notNull
+  was:
+    a: test
+    b: notNull
+
+that:
+  is:
+    a: test
+    b: notNull
+  was:
+    a: test
+    b: notNull
