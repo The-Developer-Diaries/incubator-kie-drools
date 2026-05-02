@@ -41,6 +41,8 @@ import org.drools.codegen.common.rest.RestAnnotator;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import static org.drools.codegen.common.context.ModelBuildContextUtils.loadYmlProperties;
+
 public abstract class AbstractDroolsModelBuildContext implements DroolsModelBuildContext {
 
     public static final String DEFAULT_GROUP_ID = "org.kie.kogito";
@@ -81,8 +83,11 @@ public abstract class AbstractDroolsModelBuildContext implements DroolsModelBuil
             } catch (IOException ioe) {
                 LOGGER.debug("Unable to load '" + APPLICATION_PROPERTIES_FILE_NAME + "'.");
             }
+            File ymlFile = new File(resourcePath, APPLICATION_PROPERTIES_YML_FILE_NAME);
+            loadYmlProperties(ymlFile, applicationProperties);
+            ymlFile = new File(resourcePath, APPLICATION_PROPERTIES_YAML_FILE_NAME);
+            loadYmlProperties(ymlFile, applicationProperties);
         }
-
         return applicationProperties;
     }
 
